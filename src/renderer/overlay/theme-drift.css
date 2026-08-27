@@ -1,0 +1,16 @@
+/*
+ * Theme variables for `drift` (v1's only implemented theme). The overlay CSS
+ * consumes these as custom properties, keyed off `body[data-theme]`, so
+ * adding `ember`/`tide` later is a matter of adding sibling
+ * `body[data-theme="ember"] { ... }` blocks with their own token values —
+ * no changes needed to overlay.css itself.
+ */
+body[data-theme="drift"] {
+  --accent: #aab6f2;
+  --accent-soft: rgba(170, 182, 242, 0.16);
+  --text: #e9ebf3;
+  --dim: #979cb1;
+  --bubble: rgba(255, 255, 255, 0.05);
+  --line: rgba(255, 255, 255, 0.08);
+  --bg: radial-gradient(125% 95% at 50% 8%, #161a2e 0%, #0c0e1a 56%, #080913 100%);
+}

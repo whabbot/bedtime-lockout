@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bedtime Lockout — Settings</title>
+    <link rel="stylesheet" href="./settings.css" />
+  </head>
+  <body>
+    <div id="settings-root" class="settings">
+      <h1 class="title">Bedtime Lockout — Settings</h1>
+
+      <section class="row">
+        <div class="row-main">
+          <label for="lockout-time">Lockout time</label>
+          <input id="lockout-time" type="time" />
+        </div>
+        <p class="row-hint">When the overlay arms each night.</p>
+      </section>
+
+      <section class="row">
+        <div class="row-main">
+          <label for="escalation-enabled">Bring it forward if I'm still working late</label>
+          <input id="escalation-enabled" type="checkbox" />
+        </div>
+        <div class="row-sub" id="escalation-sub">
+          <label for="escalation-mins">Continuous-use threshold</label>
+          <input id="escalation-mins" type="range" min="30" max="240" step="15" />
+          <span id="escalation-mins-value" class="mono"></span>
+        </div>
+        <p class="row-hint">
+          Locks early after <span id="escalation-hint-mins" class="mono"></span> min of continuous
+          use past 11:00 PM. Brief breaks under 5 min don't reset the clock.
+        </p>
+      </section>
+
+      <section class="row">
+        <div class="row-main">
+          <label>Countdown reminders</label>
+        </div>
+        <div class="chips" id="countdown-chips"></div>
+        <form id="countdown-add-form" class="chip-add-form">
+          <input
+            id="countdown-add-input"
+            type="number"
+            min="1"
+            step="1"
+            placeholder="min"
+            class="mono"
+          />
+          <button type="submit" class="btn-secondary">Add</button>
+        </form>
+        <p class="row-hint">Quiet heads-up before lock-in. No buttons, nothing to snooze.</p>
+      </section>
+
+      <section class="row">
+        <div class="row-main">
+          <label for="override-phrase">Override phrase</label>
+          <input id="override-phrase" type="text" class="mono" />
+        </div>
+        <p class="row-hint">Say this to pass instantly. Every use is logged.</p>
+      </section>
+
+      <section class="row">
+        <div class="row-main">
+          <label>Gatekeeper strictness</label>
+          <div class="segmented" id="strictness-segmented">
+            <button type="button" data-value="Gentle">Gentle</button>
+            <button type="button" data-value="Firm">Firm</button>
+            <button type="button" data-value="Unmovable">Unmovable</button>
+          </div>
+        </div>
+        <p class="row-hint">How hard it pushes back — and the longest grace it will grant.</p>
+      </section>
+
+      <section class="row">
+        <div class="row-main">
+          <label for="wake-time">Wake time</label>
+          <input id="wake-time" type="time" />
+        </div>
+        <p class="row-hint">
+          Wake the Mac before this and I'll lock again — it's still the same night. After it, it's
+          a fresh morning, no lock.
+        </p>
+      </section>
+
+      <div class="actions">
+        <button id="save-btn" type="button" class="btn-primary">Save</button>
+        <span id="save-status" class="mono dim"></span>
+      </div>
+
+      <footer class="footer mono dim">everything stays on this Mac · no account, no cloud</footer>
+    </div>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

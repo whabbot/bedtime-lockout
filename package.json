@@ -1,0 +1,51 @@
+{
+  "name": "bedtime-lockout",
+  "version": "1.0.0",
+  "description": "Menu-bar Electron app that throws up a focus-grabbing overlay at bedtime.",
+  "main": "out/main/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "dist:mac": "npm run build && electron-builder --mac --dir",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "electron-vite build && playwright test",
+    "format": "oxfmt --write \"{src,tests,scripts}/**/*.{js,ts,mjs,cjs}\"",
+    "format:check": "oxfmt --check \"{src,tests,scripts}/**/*.{js,ts,mjs,cjs}\"",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "build": {
+    "appId": "com.wail.bedtime-lockout",
+    "productName": "Bedtime Lockout",
+    "files": [
+      "out/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": "dir",
+      "identity": null
+    }
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^26.0.1",
+    "electron": "^43.0.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "happy-dom": "^20.11.1",
+    "oxfmt": "^0.57.0",
+    "oxlint": "^1.72.0",
+    "typescript": "^6.0.3",
+    "vite": "^7.3.6",
+    "vitest": "^4.1.9"
+  }
+}
