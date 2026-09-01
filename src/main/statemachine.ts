@@ -21,9 +21,8 @@ export interface SM {
   lastPromiseMs?: number;
   /**
    * Wall-clock epoch ms at which SLEEP_WATCH began. Needed to compute
-   * `sleptMs` for the quick-wake LOG effect on WAKE — `quickWakeUntil` alone
-   * can't recover this under the `relockPolicy==='wakeTime'` policy, since
-   * then it's an absolute cutoff unrelated to when sleep started.
+   * `sleptMs` for the quick-wake LOG effect on WAKE — `quickWakeUntil` is an
+   * absolute cutoff unrelated to when sleep started, so it can't recover this.
    */
   sleepStartedAt?: number;
 }

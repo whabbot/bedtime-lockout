@@ -361,7 +361,6 @@ describe("Controller — compressed full cycle", () => {
     store.write("settings", {
       ...DEFAULTS,
       strictness: "Gentle", // 45min cap so a 10min grant survives
-      quickWakeWindowMs: 60 * 60_000,
     });
     store.write("sm", { phase: "IDLE" });
 
@@ -408,7 +407,7 @@ describe("Controller — compressed full cycle", () => {
     expect(store.read<SM>("sm", { phase: "IDLE" }).phase).toBe("SLEEP_WATCH");
     expect(deps.lock.locked).toBe(1);
 
-    // Wake within the quick-wake window → LOCKED (quickwake), logged.
+    // Wake before the wake-time cutoff → LOCKED (quickwake), logged.
     clock.advance(5 * 60_000);
     dispatch({ t: "WAKE", now: clock.now().getTime() });
     expect(store.read<SM>("sm", { phase: "IDLE" }).phase).toBe("LOCKED");
@@ -530,8 +529,8 @@ describe("Controller — day rollover re-arm (whole-branch review fix)", () => {
   });
 });
 
-describe("Controller.onRequestSleep — relockPolicy wiring", () => {
-  it("uses the next wakeTime occurrence as the quick-wake cutoff under the default 'wakeTime' policy", () => {
+describe("Controller.onRequestSleep — quick-wake cutoff", () => {
+  it("uses the next wakeTime occurrence as the quick-wake cutoff", () => {
     const now = new Date(2026, 0, 1, 23, 47, 0).getTime(); // 11:47 PM, wakeTime "07:00" next day
     const store = new Store(dir);
     persistDefaultSettings(store);
@@ -546,26 +545,6 @@ describe("Controller.onRequestSleep — relockPolicy wiring", () => {
     const sm = store.read<SM>("sm", { phase: "IDLE" });
     expect(sm.phase).toBe("SLEEP_WATCH");
     expect(sm.quickWakeUntil).toBe(new Date(2026, 0, 2, 7, 0, 0).getTime());
-  });
-
-  it("falls back to the relative quickWakeWindowMs under the 'window' policy", () => {
-    const now = new Date(2026, 0, 1, 23, 47, 0).getTime();
-    const store = new Store(dir);
-    store.write("settings", {
-      ...DEFAULTS,
-      relockPolicy: "window",
-      quickWakeWindowMs: 60 * 60_000,
-    });
-    store.write("sm", { phase: "LOCKED", triggerAt: now });
-
-    const deps = makeDeps(now, dir);
-    const controller = new Controller(deps);
-    controller.start();
-    controller.onRequestSleep();
-    controller.stop();
-
-    const sm = store.read<SM>("sm", { phase: "IDLE" });
-    expect(sm.quickWakeUntil).toBe(now + 60 * 60_000);
   });
 });
 

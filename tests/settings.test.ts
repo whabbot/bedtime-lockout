@@ -5,7 +5,6 @@ describe("settings", () => {
   it("fills missing fields from defaults", () => {
     const s = mergeSettings({ lockoutTime: "22:45" });
     expect(s.lockoutTime).toBe("22:45");
-    expect(s.quickWakeWindowMs).toBe(DEFAULTS.quickWakeWindowMs);
     expect(s.graceCapsMs.Firm).toBe(15 * 60_000);
   });
 
@@ -19,15 +18,6 @@ describe("settings", () => {
 
   it("rejects a malformed wakeTime string", () => {
     expect(mergeSettings({ wakeTime: "not-a-time" }).wakeTime).toBe(DEFAULTS.wakeTime);
-  });
-
-  it("rejects a non-positive duration and falls back to default", () => {
-    expect(mergeSettings({ quickWakeWindowMs: -5 }).quickWakeWindowMs).toBe(
-      DEFAULTS.quickWakeWindowMs,
-    );
-    expect(mergeSettings({ quickWakeWindowMs: 0 }).quickWakeWindowMs).toBe(
-      DEFAULTS.quickWakeWindowMs,
-    );
   });
 
   it("deep-merges a partial graceCapsMs object without dropping sibling fields", () => {
@@ -66,8 +56,6 @@ describe("settings", () => {
     expect(DEFAULTS.overridePhrase).toBe("let me finish tonight");
     expect(DEFAULTS.strictness).toBe("Firm");
     expect(DEFAULTS.gatekeeperModel).toBe("sonnet");
-    expect(DEFAULTS.relockPolicy).toBe("wakeTime");
-    expect(DEFAULTS.quickWakeWindowMs).toBe(3_600_000);
     expect(DEFAULTS.graceCapsMs).toEqual({
       Gentle: 45 * 60_000,
       Firm: 15 * 60_000,

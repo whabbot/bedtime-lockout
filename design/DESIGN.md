@@ -115,9 +115,7 @@ but a *re-lock* under the design's wake-time.
 **Resolved (owner decision, 2026-06-29): use the design's `wakeTime` model.**
 v1 re-locks on any wake before the configured `wakeTime` (same night); a wake
 at/after `wakeTime` is a fresh start. This supersedes SPEC's relative-window
-default. The re-lock predicate stays parametric (`relockPolicy: 'wakeTime' |
-'window'`, default `'wakeTime'`) so SPEC's window — or a hybrid (re-lock if
-within window **or** before wake time) — remains a one-line settings change.
+default, which is not implemented.
 **#9 holds either way: any wake before the cutoff fires regardless of how short
 the sleep was; under `wakeTime` near-instant re-wakes are always caught since
 they're before morning.**

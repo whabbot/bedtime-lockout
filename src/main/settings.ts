@@ -3,14 +3,12 @@ export type Strictness = "Gentle" | "Firm" | "Unmovable";
 export interface Settings {
   schemaVersion: 1;
   lockoutTime: string; // "23:30" local, daily fixed trigger
-  wakeTime: string; // "07:00" — used when relockPolicy === 'wakeTime'
+  wakeTime: string; // "07:00" — a wake before this re-locks; at/after it is a fresh start
   theme: "ember" | "drift" | "tide";
   countdownLeadsMin: number[]; // [60, 15, 5]; [] disables countdowns
   overridePhrase: string;
   strictness: Strictness;
   gatekeeperModel: "sonnet" | "haiku";
-  relockPolicy: "wakeTime" | "window";
-  quickWakeWindowMs: number;
   graceCapsMs: { Gentle: number; Firm: number; Unmovable: number };
   dev: {
     windowedOverlay: boolean;
@@ -35,8 +33,6 @@ export const DEFAULTS: Settings = {
   overridePhrase: "let me finish tonight",
   strictness: "Firm",
   gatekeeperModel: "sonnet",
-  relockPolicy: "wakeTime",
-  quickWakeWindowMs: 3_600_000,
   graceCapsMs: {
     Gentle: 45 * 60_000,
     Firm: 15 * 60_000,
@@ -70,7 +66,6 @@ function mergeDuration(value: unknown, fallback: number): number {
 const THEMES = new Set(["ember", "drift", "tide"]);
 const STRICTNESS = new Set(["Gentle", "Firm", "Unmovable"]);
 const GATEKEEPER_MODELS = new Set(["sonnet", "haiku"]);
-const RELOCK_POLICIES = new Set(["wakeTime", "window"]);
 
 function mergeEnum<T extends string>(value: unknown, allowed: Set<string>, fallback: T): T {
   return typeof value === "string" && allowed.has(value) ? (value as T) : fallback;
@@ -103,8 +98,6 @@ export function mergeSettings(partial: PartialSettings | Record<string, unknown>
         : DEFAULTS.overridePhrase,
     strictness: mergeEnum(p.strictness, STRICTNESS, DEFAULTS.strictness),
     gatekeeperModel: mergeEnum(p.gatekeeperModel, GATEKEEPER_MODELS, DEFAULTS.gatekeeperModel),
-    relockPolicy: mergeEnum(p.relockPolicy, RELOCK_POLICIES, DEFAULTS.relockPolicy),
-    quickWakeWindowMs: mergeDuration(p.quickWakeWindowMs, DEFAULTS.quickWakeWindowMs),
     graceCapsMs: {
       Gentle: mergeDuration(graceCapsIn.Gentle, DEFAULTS.graceCapsMs.Gentle),
       Firm: mergeDuration(graceCapsIn.Firm, DEFAULTS.graceCapsMs.Firm),

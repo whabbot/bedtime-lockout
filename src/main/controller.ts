@@ -135,7 +135,7 @@ export class Controller {
    * captured into scheduled timers at `start()` (lockoutTime,
    * countdownLeadsMin) are NOT retroactively rescheduled by this call —
    * everything else (grace caps, strictness, override phrase, gatekeeper
-   * model, quick-wake window) applies on the very next read.
+   * model, wake time) applies on the very next read.
    */
   reloadSettings(): void {
     this.settings = mergeSettings(this.store.read<Record<string, unknown>>(SETTINGS_KEY, {}));
@@ -462,10 +462,7 @@ export class Controller {
   }
 
   onRequestSleep(): void {
-    const quickWakeUntil =
-      this.settings.relockPolicy === "wakeTime"
-        ? nextTrigger(this.settings.wakeTime, this.clock.now()).getTime()
-        : this.nowMs() + this.settings.quickWakeWindowMs;
+    const quickWakeUntil = nextTrigger(this.settings.wakeTime, this.clock.now()).getTime();
     this.dispatch({ t: "SLEEP", now: this.nowMs(), quickWakeUntil });
   }
 
