@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { nextTrigger, countdownFirings } from "../src/main/scheduler";
+import { nextTrigger, countdownFirings, isWithinLockoutWindow } from "../src/main/scheduler";
 
 const at = (h: number, m: number, d = 29) => new Date(2026, 5, d, h, m, 0);
 
@@ -31,5 +31,31 @@ describe("scheduler", () => {
     // 60-min lead from 23:00 lands at exactly 22:00 === now: not strictly future.
     const f = countdownFirings(at(23, 0), [60], at(22, 0));
     expect(f).toEqual([]);
+  });
+});
+
+describe("isWithinLockoutWindow", () => {
+  const inWindow = (h: number, m: number): boolean =>
+    isWithinLockoutWindow("23:30", "07:00", at(h, m));
+
+  it("is false in the evening before lockout time", () => {
+    expect(inWindow(22, 0)).toBe(false);
+  });
+
+  it("is true after lockout time, before midnight", () => {
+    expect(inWindow(23, 45)).toBe(true);
+  });
+
+  it("is true in the small hours, after midnight", () => {
+    expect(inWindow(3, 0)).toBe(true);
+  });
+
+  it("is false after wake time", () => {
+    expect(inWindow(8, 0)).toBe(false);
+  });
+
+  it("is true exactly at lockout time and false exactly at wake time", () => {
+    expect(inWindow(23, 30)).toBe(true);
+    expect(inWindow(7, 0)).toBe(false);
   });
 });

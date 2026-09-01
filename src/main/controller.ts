@@ -19,7 +19,7 @@ import {
 } from "./gatekeeper-prompt";
 import { reduce, type Effect, type Event, type SM } from "./statemachine";
 import { WallClockTimer } from "./timers";
-import { countdownFirings, nextTrigger } from "./scheduler";
+import { countdownFirings, isWithinLockoutWindow, nextTrigger } from "./scheduler";
 import type { OverlayIpcHandlers, OverlayState } from "./overlay-ipc";
 
 const SM_KEY = "sm";
@@ -182,6 +182,35 @@ export class Controller {
 
   snapshot(): { phase: SM["phase"] } {
     return { phase: this.sm.phase };
+  }
+
+  /**
+   * When the override phrase has stood the app down for the night, the instant
+   * it re-arms at (the next day-rollover); null whenever nothing is snoozed.
+   */
+  snoozedUntilMs(): number | null {
+    if (this.sm.phase !== "OVERRIDE_NIGHT") {
+      return null;
+    }
+    return nextTrigger(this.settings.wakeTime, this.clock.now()).getTime();
+  }
+
+  /**
+   * Ends the override night early and re-runs the schedule from now, as if the
+   * app had just started up: NEW_DAY re-arms tonight's trigger and countdowns,
+   * and if `now` already falls inside the lockout window the lock comes
+   * straight back rather than waiting for a boundary that has already passed.
+   */
+  resetSnooze(): void {
+    if (this.sm.phase !== "OVERRIDE_NIGHT") {
+      return;
+    }
+    this.dispatch({ t: "NEW_DAY", now: this.nowMs() });
+    if (
+      isWithinLockoutWindow(this.settings.lockoutTime, this.settings.wakeTime, this.clock.now())
+    ) {
+      this.dispatch({ t: "TRIGGER", now: this.nowMs() });
+    }
   }
 
   private handleWake(): void {

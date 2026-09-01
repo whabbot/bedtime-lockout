@@ -1,4 +1,4 @@
-import { app, Menu, nativeImage, Tray } from "electron";
+import { app, Menu, nativeImage, Tray, type MenuItemConstructorOptions } from "electron";
 import type { Controller } from "./controller";
 import type { LockPort } from "./ports";
 import type { Store } from "./store";
@@ -47,6 +47,17 @@ function statusLabel(store: Store): string {
 }
 
 /**
+ * The "Reset snooze" entry, present only while an override night is actually
+ * standing the app down — there is nothing to reset otherwise.
+ */
+function resetSnoozeItem(controller: Controller): MenuItemConstructorOptions[] {
+  if (controller.snoozedUntilMs() === null) {
+    return [];
+  }
+  return [{ label: "Reset snooze", click: () => controller.resetSnooze() }];
+}
+
+/**
  * Creates the menu-bar tray icon and its native Menu. The caller must keep
  * the returned `Tray` referenced for the app's lifetime — Electron drops the
  * icon once it's garbage-collected.
@@ -57,6 +68,8 @@ export function createTray(controller: Controller, lock: LockPort, store: Store)
 
   const settingsHandlers: SettingsIpcHandlers = {
     onSettingsChanged: () => controller.reloadSettings(),
+    snoozedUntilMs: () => controller.snoozedUntilMs(),
+    onResetSnooze: () => controller.resetSnooze(),
   };
 
   const rebuildMenu = (): void => {
@@ -67,6 +80,7 @@ export function createTray(controller: Controller, lock: LockPort, store: Store)
       { label: status, enabled: false },
       { type: "separator" },
       { label: "Lock now", click: () => controller.triggerNow() },
+      ...resetSnoozeItem(controller),
       { label: "[dev] Lock screen now", click: () => lock.lockNow() },
       { type: "separator" },
       {

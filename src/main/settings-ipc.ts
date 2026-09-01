@@ -6,6 +6,9 @@ const SETTINGS_KEY = "settings";
 
 export interface SettingsIpcHandlers {
   onSettingsChanged(): void;
+  /** Epoch ms the override night re-arms at, or null when nothing is snoozed. */
+  snoozedUntilMs(): number | null;
+  onResetSnooze(): void;
 }
 
 /**
@@ -33,8 +36,17 @@ export function registerSettingsIpc(
     return merged;
   });
 
+  ipcMain.handle("btl-settings:snoozed-until", (): number | null => handlers.snoozedUntilMs());
+
+  ipcMain.handle("btl-settings:reset-snooze", (): number | null => {
+    handlers.onResetSnooze();
+    return handlers.snoozedUntilMs();
+  });
+
   win.on("closed", () => {
     ipcMain.removeHandler("btl-settings:get");
     ipcMain.removeHandler("btl-settings:save");
+    ipcMain.removeHandler("btl-settings:snoozed-until");
+    ipcMain.removeHandler("btl-settings:reset-snooze");
   });
 }

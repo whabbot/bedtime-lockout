@@ -54,3 +54,78 @@ describe("scenarios — reconstructing OVERRIDE_NIGHT does not re-cage or re-loc
     controller.stop();
   });
 });
+
+describe("scenarios — resetting the snooze re-runs the schedule from now", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "btl-reset-snooze-"));
+  });
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  function bootSnoozed(nowMs: number): {
+    controller: Controller;
+    overlay: FakeOverlay;
+    store: Store;
+  } {
+    const store = new Store(dir);
+    persistDefaultSettings(store);
+    store.write("sm", { phase: "OVERRIDE_NIGHT" } satisfies SM);
+
+    const deps = makeDeps(nowMs, dir);
+    const controller = new Controller(deps);
+    controller.start();
+    return { controller, overlay: deps.overlay as FakeOverlay, store };
+  }
+
+  // Defaults: lockout 23:30, wake 07:00.
+  const at = (h: number, m: number): number => new Date(2026, 5, 29, h, m, 0).getTime();
+
+  it("reports the wake time as the snooze end while snoozed, and nothing once reset", () => {
+    const { controller } = bootSnoozed(at(22, 0));
+
+    expect(controller.snoozedUntilMs()).toBe(at(7, 0) + 24 * HOUR);
+    controller.resetSnooze();
+    expect(controller.snoozedUntilMs()).toBeNull();
+    controller.stop();
+  });
+
+  it("is a no-op when nothing is snoozed, leaving a live lock alone", () => {
+    const { controller, overlay } = bootSnoozed(at(23, 45));
+    controller.triggerNow();
+    const shown = overlay.shown;
+    const hidden = overlay.hidden;
+
+    controller.resetSnooze();
+
+    expect(controller.snapshot().phase).toBe("LOCKED");
+    expect(overlay.shown).toBe(shown);
+    expect(overlay.hidden).toBe(hidden);
+    controller.stop();
+  });
+
+  it("locks straight away when now is already inside the lockout window", () => {
+    const { controller, overlay } = bootSnoozed(at(23, 45));
+
+    controller.resetSnooze();
+
+    expect(controller.snapshot().phase).toBe("LOCKED");
+    expect(overlay.shown).toBeGreaterThan(0);
+    controller.stop();
+  });
+
+  it("goes back to armed-and-idle when now is before tonight's lockout time", () => {
+    const { controller, overlay, store } = bootSnoozed(at(22, 0));
+
+    controller.resetSnooze();
+
+    expect(controller.snapshot().phase).toBe("IDLE");
+    expect(overlay.shown).toBe(0);
+    // OVERRIDE_NIGHT leaves the nightly trigger unscheduled; the reset must
+    // re-arm tonight's lock rather than just clearing the phase.
+    const timers = store.read<{ id: string; at: number }[]>("timers", []);
+    expect(timers.find((t) => t.id === "nightly-trigger")?.at).toBe(at(23, 30));
+    controller.stop();
+  });
+});

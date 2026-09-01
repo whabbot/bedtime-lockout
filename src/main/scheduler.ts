@@ -46,3 +46,15 @@ export function countdownFirings(triggerAt: Date, leadsMin: number[], now: Date)
     .filter((firing) => firing.getTime() > nowMs)
     .sort((a, b) => a.getTime() - b.getTime());
 }
+
+/**
+ * True iff `now` falls inside tonight's lockout window — at-or-after
+ * `lockoutTime` and before `wakeTime`, the window spanning midnight.
+ *
+ * Both boundaries are compared through `nextTrigger`, which already handles
+ * the day rollover: the window is active exactly when the next wake boundary
+ * arrives before the next lockout boundary.
+ */
+export function isWithinLockoutWindow(lockoutTime: string, wakeTime: string, now: Date): boolean {
+  return nextTrigger(wakeTime, now).getTime() <= nextTrigger(lockoutTime, now).getTime();
+}

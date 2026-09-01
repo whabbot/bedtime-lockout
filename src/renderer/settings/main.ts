@@ -1,10 +1,13 @@
 import type { Settings, Strictness } from "../../main/settings";
+import { formatClock } from "../overlay/copy";
 
 declare global {
   interface Window {
     btlSettings: {
       getSettings(): Promise<Settings>;
       saveSettings(settings: Settings): Promise<Settings>;
+      snoozedUntilMs(): Promise<number | null>;
+      resetSnooze(): Promise<number | null>;
     };
   }
 }
@@ -18,6 +21,9 @@ const strictnessSegmentedEl = document.getElementById("strictness-segmented") as
 const wakeTimeEl = document.getElementById("wake-time") as HTMLInputElement;
 const saveBtnEl = document.getElementById("save-btn") as HTMLButtonElement;
 const saveStatusEl = document.getElementById("save-status") as HTMLElement;
+const snoozeRowEl = document.getElementById("snooze-row") as HTMLElement;
+const snoozeUntilEl = document.getElementById("snooze-until") as HTMLElement;
+const resetSnoozeBtnEl = document.getElementById("reset-snooze-btn") as HTMLButtonElement;
 
 // The in-memory copy of Settings this window edits; saving always round-trips
 // the full object through mergeSettings on the main side, so a per-field edit
@@ -60,8 +66,24 @@ function render(settings: Settings): void {
   renderStrictness(settings.strictness);
 }
 
+function renderSnooze(untilMs: number | null): void {
+  snoozeRowEl.hidden = untilMs === null;
+  if (untilMs !== null) {
+    snoozeUntilEl.textContent = formatClock(new Date(untilMs));
+  }
+}
+
 async function load(): Promise<void> {
   render(await window.btlSettings.getSettings());
+  renderSnooze(await window.btlSettings.snoozedUntilMs());
+}
+
+resetSnoozeBtnEl.addEventListener("click", () => {
+  void resetSnooze();
+});
+
+async function resetSnooze(): Promise<void> {
+  renderSnooze(await window.btlSettings.resetSnooze());
 }
 
 countdownAddFormEl.addEventListener("submit", (e) => {
@@ -101,6 +123,8 @@ async function save(): Promise<void> {
   saveStatusEl.textContent = "Saving…";
   const saved = await window.btlSettings.saveSettings(next);
   render(saved);
+  // The snooze ends at wakeTime, which this save may have just moved.
+  renderSnooze(await window.btlSettings.snoozedUntilMs());
   saveStatusEl.textContent = "Saved.";
   setTimeout(() => {
     saveStatusEl.textContent = "";
