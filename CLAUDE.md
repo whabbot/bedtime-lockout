@@ -1,3 +1,5 @@
+Before committing, use the finishing-a-change skill.
+
 - Don't add unnecessary comments. Add comments where the code is complex or unusual, but do not add comments if the code is easily understandable. Prefer extracting methods to make the code more expressive over adding inline comments.
 - Only add comments about things which are necessary to understand the code, the domain or FUTURE features. Do not add comments about features which no longer exist, or about corrections that were made in the process of coding, or about current implementation plans.
 
