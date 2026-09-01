@@ -1,5 +1,3 @@
-## Comments
-
 - Don't add unnecessary comments. Add comments where the code is complex or unusual, but do not add comments if the code is easily understandable. Prefer extracting methods to make the code more expressive over adding inline comments.
 - Only add comments about things which are necessary to understand the code, the domain or FUTURE features. Do not add comments about features which no longer exist, or about corrections that were made in the process of coding, or about current implementation plans.
 
@@ -49,36 +47,3 @@ function timestampMs(ev: LockoutEvent): number {
 ```
 
 This comment is unnecessary - the comment just repeats what the code already says.
-
-## Before every commit
-
-Run `npm run verify` — format, types, unit tests, lint, production build. All
-five must pass.
-
-`tsc --noEmit` is the gate that matters most on a change that removes things:
-the test suite can go green while a deleted symbol is still referenced, because
-the file that referenced it lost its tests in the same change.
-
-Read vitest's tail, not just the pass count. Unhandled rejections report as
-`Errors N errors` while every test still passes.
-
-Then the parts no script can check:
-
-- Sweep for code the change orphaned. Grep the names you removed — a deleted
-  feature usually strands more than its own file: a port method, a test helper,
-  a CSS rule.
-- Sweep for comments the change made stale. Grep the identifiers you touched. A
-  comment naming a field that was renamed or deleted is a defect under the rules
-  above, not untidiness.
-- Update README, SPEC or ISSUES if observable behaviour changed.
-- Cover a UI change with a renderer test driving the real HTML (see
-  `tests/settings-renderer.test.ts`) rather than checking it by eye.
-
-## Before every push
-
-`npm run test:e2e` runs the app for real and is the slowest check, so it sits at
-the push boundary rather than the commit one: the `pre-push` hook runs
-`npm run verify` and then the end-to-end suite. Run it earlier by hand when a
-change to `src/main`, `src/preload` or `src/renderer` looks likely to break it.
-
-`git push --no-verify` skips the hook, for pushes that can't break the app.

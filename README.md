@@ -24,9 +24,9 @@ npm run lint          # oxlint
 npm run format        # oxfmt
 ```
 
-`.githooks/pre-push` runs `npm run verify` and the end-to-end suite before a
-push reaches `main`, mirroring the CI workflow. Bypass it with
-`git push --no-verify`.
+`.githooks/pre-commit` runs `npm run verify` on every commit, and
+`.githooks/pre-push` adds the end-to-end suite before anything reaches `main`,
+mirroring the CI workflow. Bypass either with `--no-verify`.
 
 ## Building
 

@@ -1,7 +1,8 @@
 #!/bin/sh
 # Trunk-based development straight onto main: there is no pull request to gate
-# on, so a push is the last checkpoint before code becomes public. Run
-# everything CI will run, and fail here rather than on a red main.
+# on, so a push is the last checkpoint before code becomes public. Runs the
+# end-to-end suite the pre-commit hook is too slow to carry, re-running the
+# fast gates in case a commit got in via --no-verify.
 #
 # `git push --no-verify` skips this, for pushes that can't break the app.
 set -e

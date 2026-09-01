@@ -1,0 +1,8 @@
+#!/bin/sh
+# Format, types, unit tests, lint and a production build. Fast enough to run on
+# every commit; the end-to-end suite runs at push time instead.
+#
+# `git commit --no-verify` skips this.
+set -e
+
+npm run verify
