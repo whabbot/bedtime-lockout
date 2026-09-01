@@ -10,6 +10,8 @@
     "start": "electron-vite preview",
     "dist:mac": "npm run build && electron-builder --mac --dir",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run format:check && npm run typecheck && npm test && npm run lint && npm run build",
     "test:watch": "vitest",
     "test:e2e": "electron-vite build && playwright test",
     "format": "oxfmt --write \"{src,tests,scripts}/**/*.{js,ts,mjs,cjs}\"",

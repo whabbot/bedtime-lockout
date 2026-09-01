@@ -1,0 +1,10 @@
+#!/bin/sh
+# Trunk-based development straight onto main: there is no pull request to gate
+# on, so a push is the last checkpoint before code becomes public. Run
+# everything CI will run, and fail here rather than on a red main.
+#
+# `git push --no-verify` skips this, for pushes that can't break the app.
+set -e
+
+npm run verify
+npm run test:e2e

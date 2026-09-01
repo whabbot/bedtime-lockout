@@ -14,12 +14,19 @@ for tracked work.
 
 ```bash
 npm install
-npm run dev          # run the app in development
+git config core.hooksPath .githooks   # once per clone: enables the pre-push checks
+
+npm run dev           # run the app in development
+npm run verify        # format, types, unit tests, lint, build — the pre-commit gate
 npm test              # unit/DOM tests (vitest)
 npm run test:e2e      # Playwright + Electron end-to-end tests
-npm run lint           # oxlint
-npm run format         # oxfmt
+npm run lint          # oxlint
+npm run format        # oxfmt
 ```
+
+`.githooks/pre-push` runs `npm run verify` and the end-to-end suite before a
+push reaches `main`, mirroring the CI workflow. Bypass it with
+`git push --no-verify`.
 
 ## Building
 
