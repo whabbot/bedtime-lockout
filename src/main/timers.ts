@@ -45,8 +45,8 @@ export class WallClockTimer {
   }
 
   /**
-   * Cancels a scheduled target by id, if present. Needed when escalation
-   * recomputes countdown firings via `recompress` into fewer targets than
+   * Cancels a scheduled target by id, if present. Needed when countdown
+   * firings are recomputed into fewer targets than
    * were originally scheduled — the stale higher-numbered ids must be
    * cancelled so they don't fire a "bedtime soon" warning after the lock is
    * already active.

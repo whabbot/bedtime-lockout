@@ -26,19 +26,11 @@ export interface SM {
    * then it's an absolute cutoff unrelated to when sleep started.
    */
   sleepStartedAt?: number;
-  /**
-   * Whether the current lock was triggered by continuous-activity escalation
-   * rather than the scheduled bedtime. Persisted so a crash between TRIGGER
-   * and the first gatekeeper turn doesn't lose the escalation framing the
-   * gatekeeper prompt needs; the Controller reads it back when assembling
-   * GatekeeperContext.escalated.
-   */
-  escalated?: boolean;
 }
 
 export type Event =
   | { t: "TICK"; now: number }
-  | { t: "TRIGGER"; now: number; escalated: boolean; force?: boolean }
+  | { t: "TRIGGER"; now: number; force?: boolean }
   | { t: "NEGOTIATED_UNLOCK"; now: number; graceMs: number }
   | { t: "OVERRIDE"; now: number }
   | { t: "SLEEP"; now: number; quickWakeUntil: number }
@@ -53,17 +45,12 @@ export interface Effect {
 
 function showOverlay(opts: {
   reentry?: "grace" | "quickwake";
-  escalated?: boolean;
   priorCommitmentMs?: number;
 }): Effect {
   const effect: Effect = {
     type: "SHOW_OVERLAY",
-    payload: {
-      escalated: opts.escalated ?? false,
-      ...(opts.priorCommitmentMs !== undefined
-        ? { priorCommitmentMs: opts.priorCommitmentMs }
-        : {}),
-    },
+    payload:
+      opts.priorCommitmentMs !== undefined ? { priorCommitmentMs: opts.priorCommitmentMs } : {},
   };
   if (opts.reentry) {
     effect.reentry = opts.reentry;
@@ -77,10 +64,10 @@ function noop(state: SM): { state: SM; effects: Effect[] } {
   return { state, effects: [] };
 }
 
-function onTrigger(now: number, escalated: boolean): { state: SM; effects: Effect[] } {
+function onTrigger(now: number): { state: SM; effects: Effect[] } {
   return {
-    state: { phase: "LOCKED", triggerAt: now, escalated },
-    effects: [showOverlay({ escalated })],
+    state: { phase: "LOCKED", triggerAt: now },
+    effects: [showOverlay({})],
   };
 }
 
@@ -156,7 +143,7 @@ export function reduce(s: SM, e: Event): { state: SM; effects: Effect[] } {
   switch (e.t) {
     case "TRIGGER":
       // Already locked: always a no-op, force or not — re-triggering would
-      // reset triggerAt/escalated for no benefit, since the lock this would
+      // reset triggerAt for no benefit, since the lock this would
       // produce is indistinguishable from the one already showing.
       if (s.phase === "LOCKED") {
         return noop(s);
@@ -168,11 +155,11 @@ export function reduce(s: SM, e: Event): { state: SM; effects: Effect[] } {
       // bypasses this for the tray's manual "Lock now": that's a deliberate,
       // one-off user action rather than a replayed/duplicate scheduled event,
       // so it isn't subject to the same guarantee an override phrase makes
-      // about the automatic nightly/escalation trigger.
+      // about the automatic nightly trigger.
       if (!e.force && s.phase !== "IDLE" && s.phase !== "COUNTDOWN") {
         return noop(s);
       }
-      return onTrigger(e.now, e.escalated);
+      return onTrigger(e.now);
 
     case "NEGOTIATED_UNLOCK":
       if (s.phase !== "LOCKED") {

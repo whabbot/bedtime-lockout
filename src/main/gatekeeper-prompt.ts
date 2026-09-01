@@ -30,9 +30,6 @@ export interface GatekeeperContext {
    */
   graceCapMs: number;
 
-  /** True when the controller's escalation logic has triggered (sustained continuous activity past bedtime). */
-  escalated: boolean;
-
   /** Set when the user previously promised to stop in N minutes, and that promise is now being checked against elapsed time. */
   priorCommitment?: { promisedMs: number; elapsedMs: number };
 
@@ -123,13 +120,6 @@ export function buildSystemPrompt(ctx: GatekeeperContext): string {
     lines.push(
       `Additionally, the user has had ${ctx.history.quickWakesThisWeek} quick-wake event(s) this week ` +
         '(falling asleep only briefly, then returning to negotiate again) — factor this into how much you trust claims of being "about to sleep."',
-    );
-  }
-
-  if (ctx.escalated) {
-    lines.push(
-      "Escalation has triggered: the user has been continuously active for a long stretch past their bedtime, well beyond a normal wind-down. " +
-        "This continuous-use pattern is exactly why escalation exists — be noticeably less patient and more direct than you would be on a normal night.",
     );
   }
 

@@ -25,10 +25,8 @@ export interface GatekeeperPort {
 }
 
 /**
- * PowerMonitorPort: the boundary to the OS's sleep/wake and idle-time
- * signals (Electron's `powerMonitor` singleton). `getSystemIdleTime()`
- * matches `powerMonitor.getSystemIdleTime()` exactly: seconds since the
- * last user input, across the whole system (not just this app).
+ * PowerMonitorPort: the boundary to the OS's sleep/wake signals
+ * (Electron's `powerMonitor` singleton).
  */
 export interface PowerMonitorPort {
   onResume(cb: () => void): void;
@@ -39,7 +37,6 @@ export interface PowerMonitorPort {
    * this is the signal that the user has come back from a lock.
    */
   onUnlock(cb: () => void): void;
-  getSystemIdleTime(): number;
 }
 
 /**

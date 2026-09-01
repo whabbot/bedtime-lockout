@@ -7,10 +7,7 @@ function locked(triggerAt: number): SM {
 
 describe("statemachine — brief semantics", () => {
   it("TRIGGER moves IDLE to LOCKED and shows the overlay", () => {
-    const { state, effects } = reduce(
-      { phase: "IDLE" },
-      { t: "TRIGGER", now: 0, escalated: false },
-    );
+    const { state, effects } = reduce({ phase: "IDLE" }, { t: "TRIGGER", now: 0 });
     expect(state.phase).toBe("LOCKED");
     expect(state.triggerAt).toBe(0);
     expect(effects.find((e) => e.type === "SHOW_OVERLAY")).toBeTruthy();
@@ -101,18 +98,9 @@ describe("statemachine — quick-wake LOG effect carries enough to build kind:'q
   });
 });
 
-describe("statemachine — escalated flows into SHOW_OVERLAY payload and persists on SM", () => {
-  it("TRIGGER with escalated:true puts escalated in both the SHOW_OVERLAY payload and SM", () => {
-    const { state, effects } = reduce({ phase: "IDLE" }, { t: "TRIGGER", now: 0, escalated: true });
-    // Persisted on SM so a crash between TRIGGER and the first gatekeeper turn
-    // can recover the escalation framing on reconstruct (Task 14).
-    expect((state as SM & { escalated?: boolean }).escalated).toBe(true);
-    const overlay = effects.find((e) => e.type === "SHOW_OVERLAY");
-    expect(overlay?.payload?.escalated).toBe(true);
-  });
-
+describe("statemachine — a fresh TRIGGER-driven lock", () => {
   it("a fresh TRIGGER-driven lock has no reentry on its SHOW_OVERLAY effect", () => {
-    const { effects } = reduce({ phase: "IDLE" }, { t: "TRIGGER", now: 0, escalated: false });
+    const { effects } = reduce({ phase: "IDLE" }, { t: "TRIGGER", now: 0 });
     const overlay = effects.find((e) => e.type === "SHOW_OVERLAY");
     expect(overlay?.reentry).toBeUndefined();
   });
@@ -178,21 +166,21 @@ describe("statemachine — invalid/out-of-phase events are no-ops", () => {
 
   it("a stale/replayed TRIGGER cannot re-lock a night already in OVERRIDE_NIGHT", () => {
     const { state } = reduce(locked(0), { t: "OVERRIDE", now: 0 });
-    const r = reduce(state, { t: "TRIGGER", now: 1000, escalated: false });
+    const r = reduce(state, { t: "TRIGGER", now: 1000 });
     expect(r.state).toEqual(state);
     expect(r.effects).toEqual([]);
   });
 
   it("a force:true TRIGGER (manual 'Lock now') re-locks even from OVERRIDE_NIGHT", () => {
     const { state } = reduce(locked(0), { t: "OVERRIDE", now: 0 });
-    const r = reduce(state, { t: "TRIGGER", now: 1000, escalated: false, force: true });
+    const r = reduce(state, { t: "TRIGGER", now: 1000, force: true });
     expect(r.state.phase).toBe("LOCKED");
     expect(r.effects.some((e) => e.type === "SHOW_OVERLAY")).toBe(true);
   });
 
   it("a stale/replayed TRIGGER while already LOCKED is a no-op", () => {
     const s = locked(0);
-    const r = reduce(s, { t: "TRIGGER", now: 1000, escalated: false });
+    const r = reduce(s, { t: "TRIGGER", now: 1000 });
     expect(r.state).toEqual(s);
     expect(r.effects).toEqual([]);
   });
@@ -203,7 +191,7 @@ describe("statemachine — invalid/out-of-phase events are no-ops", () => {
       now: 0,
       graceMs: 60000,
     });
-    const graceResult = reduce(graceState, { t: "TRIGGER", now: 1000, escalated: false });
+    const graceResult = reduce(graceState, { t: "TRIGGER", now: 1000 });
     expect(graceResult.state).toEqual(graceState);
     expect(graceResult.effects).toEqual([]);
 
@@ -212,13 +200,13 @@ describe("statemachine — invalid/out-of-phase events are no-ops", () => {
       now: 0,
       quickWakeUntil: 1000,
     });
-    const sleepResult = reduce(sleepState, { t: "TRIGGER", now: 500, escalated: false });
+    const sleepResult = reduce(sleepState, { t: "TRIGGER", now: 500 });
     expect(sleepResult.state).toEqual(sleepState);
     expect(sleepResult.effects).toEqual([]);
   });
 
   it("TRIGGER from COUNTDOWN behaves like TRIGGER from IDLE", () => {
-    const r = reduce({ phase: "COUNTDOWN" }, { t: "TRIGGER", now: 0, escalated: false });
+    const r = reduce({ phase: "COUNTDOWN" }, { t: "TRIGGER", now: 0 });
     expect(r.state.phase).toBe("LOCKED");
     expect(r.effects.find((e) => e.type === "SHOW_OVERLAY")).toBeTruthy();
   });

@@ -11,7 +11,6 @@ export type LockoutEvent =
       kind: "lockout";
       scheduledAt: string;
       actualAt: string;
-      escalated: boolean;
       meta?: object;
     }
   | {

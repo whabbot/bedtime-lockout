@@ -28,16 +28,12 @@ export class FakeClock implements ClockPort {
 export class FakePower implements PowerMonitorPort {
   resumeCb: (() => void) | null = null;
   unlockCb: (() => void) | null = null;
-  idleSeconds = 0;
   onResume(cb: () => void): void {
     this.resumeCb = cb;
   }
   onSuspend(): void {}
   onUnlock(cb: () => void): void {
     this.unlockCb = cb;
-  }
-  getSystemIdleTime(): number {
-    return this.idleSeconds;
   }
 }
 
@@ -108,9 +104,6 @@ export function makeDeps(now: number, dir: string): ControllerDeps {
   };
 }
 
-export function persistNoEscalationSettings(store: Store): void {
-  store.write("settings", {
-    ...DEFAULTS,
-    escalation: { ...DEFAULTS.escalation, enabled: false },
-  });
+export function persistDefaultSettings(store: Store): void {
+  store.write("settings", { ...DEFAULTS });
 }

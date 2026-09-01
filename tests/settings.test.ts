@@ -30,17 +30,6 @@ describe("settings", () => {
     );
   });
 
-  it("deep-merges a partial escalation object without dropping sibling fields", () => {
-    const s = mergeSettings({ escalation: { pollIntervalMs: 5_000 } });
-    expect(s.escalation.pollIntervalMs).toBe(5_000);
-    expect(s.escalation.enabled).toBe(DEFAULTS.escalation.enabled);
-    expect(s.escalation.earliestStart).toBe(DEFAULTS.escalation.earliestStart);
-    expect(s.escalation.continuousUseThresholdMs).toBe(
-      DEFAULTS.escalation.continuousUseThresholdMs,
-    );
-    expect(s.escalation.idleGapToleranceMs).toBe(DEFAULTS.escalation.idleGapToleranceMs);
-  });
-
   it("deep-merges a partial graceCapsMs object without dropping sibling fields", () => {
     const s = mergeSettings({ graceCapsMs: { Firm: 1_000 } });
     expect(s.graceCapsMs.Firm).toBe(1_000);
@@ -49,9 +38,8 @@ describe("settings", () => {
   });
 
   it("rejects a non-positive nested duration and falls back to default", () => {
-    const s = mergeSettings({ escalation: { continuousUseThresholdMs: -1 } });
-    expect(s.escalation.continuousUseThresholdMs).toBe(
-      DEFAULTS.escalation.continuousUseThresholdMs,
+    expect(mergeSettings({ graceCapsMs: { Firm: -1 } }).graceCapsMs.Firm).toBe(
+      DEFAULTS.graceCapsMs.Firm,
     );
   });
 
@@ -84,13 +72,6 @@ describe("settings", () => {
       Gentle: 45 * 60_000,
       Firm: 15 * 60_000,
       Unmovable: 5 * 60_000,
-    });
-    expect(DEFAULTS.escalation).toEqual({
-      enabled: true,
-      earliestStart: "22:30",
-      continuousUseThresholdMs: 90 * 60_000,
-      idleGapToleranceMs: 5 * 60_000,
-      pollIntervalMs: 30_000,
     });
     expect(DEFAULTS.dev).toEqual({ windowedOverlay: false });
   });

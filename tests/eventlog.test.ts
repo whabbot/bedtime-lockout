@@ -75,14 +75,12 @@ describe("EventLog.summaryForGatekeeper — lastLockoutAt", () => {
       kind: "lockout",
       scheduledAt: "2026-06-01T23:30:00.000Z",
       actualAt: "2026-06-01T23:31:00.000Z",
-      escalated: false,
     });
     log.append({
       v: 1,
       kind: "lockout",
       scheduledAt: "2026-06-29T23:30:00.000Z",
       actualAt: "2026-06-29T23:32:00.000Z",
-      escalated: true,
     });
 
     expect(log.summaryForGatekeeper(now).lastLockoutAt).toBe("2026-06-29T23:32:00.000Z");
@@ -162,7 +160,6 @@ describe("EventLog.recent", () => {
       kind: "lockout",
       scheduledAt: "2026-06-29T23:30:00.000Z",
       actualAt: "2026-06-30T00:05:00.000Z",
-      escalated: false,
     });
 
     const cutoff = new Date("2026-06-30T00:00:00.000Z").getTime();
@@ -179,7 +176,6 @@ describe("EventLog.recent", () => {
       kind: "lockout",
       scheduledAt: "2026-06-30T23:30:00.000Z",
       actualAt: "2026-06-30T23:30:05.000Z",
-      escalated: false,
     });
     log.append({
       v: 1,

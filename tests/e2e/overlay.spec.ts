@@ -10,10 +10,7 @@ function seedLockedNight(): string {
     join(userDataDir, "settings.json"),
     JSON.stringify({ ...DEFAULTS, dev: { windowedOverlay: true } }),
   );
-  writeFileSync(
-    join(userDataDir, "sm.json"),
-    JSON.stringify({ phase: "LOCKED", triggerAt: 0, escalated: false }),
-  );
+  writeFileSync(join(userDataDir, "sm.json"), JSON.stringify({ phase: "LOCKED", triggerAt: 0 }));
   return userDataDir;
 }
 

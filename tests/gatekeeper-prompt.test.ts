@@ -29,7 +29,6 @@ function baseCtx(overrides: Partial<GatekeeperContext> = {}): GatekeeperContext 
     minutesLate: 15,
     strictness: "Firm",
     history: baseHistory(),
-    escalated: false,
     graceCapMs: 15 * 60_000,
     ...overrides,
   };
@@ -109,14 +108,6 @@ describe("buildSystemPrompt — documented-but-not-literally-asserted requiremen
     expect(unmovable).toContain("Unmovable");
     // The two tones should not be byte-identical aside from the cap number.
     expect(gentle).not.toEqual(unmovable);
-  });
-
-  it("frames escalation when escalated === true (continuous activity acknowledgment)", () => {
-    const escalated = buildSystemPrompt(baseCtx({ escalated: true }));
-    const notEscalated = buildSystemPrompt(baseCtx({ escalated: false }));
-    const lower = escalated.toLowerCase();
-    expect(lower).toMatch(/escalat|continuous|long stretch|extended period/);
-    expect(escalated).not.toEqual(notEscalated);
   });
 
   it('handles reentry === "grace" with at least some acknowledgment, distinct from quickwake', () => {

@@ -5,10 +5,10 @@ import { join } from "node:path";
 import { reduce, type SM } from "../src/main/statemachine";
 import { Controller } from "../src/main/controller";
 import { Store } from "../src/main/store";
-import { makeDeps, persistNoEscalationSettings, FakeOverlay, FakeLock } from "./helpers/fakes";
+import { makeDeps, persistDefaultSettings, FakeOverlay, FakeLock } from "./helpers/fakes";
 
 const HOUR = 3_600_000;
-const locked = (triggerAt: number): SM => ({ phase: "LOCKED", triggerAt, escalated: false });
+const locked = (triggerAt: number): SM => ({ phase: "LOCKED", triggerAt });
 
 describe("scenarios — quickwake boundary is inclusive at exactly quickWakeUntil", () => {
   const CUTOFF = 8 * HOUR;
@@ -38,7 +38,7 @@ describe("scenarios — reconstructing OVERRIDE_NIGHT does not re-cage or re-loc
 
   it("boots into OVERRIDE_NIGHT with no overlay shown and no lock", () => {
     const store = new Store(dir);
-    persistNoEscalationSettings(store);
+    persistDefaultSettings(store);
     const sm: SM = { phase: "OVERRIDE_NIGHT" };
     store.write("sm", sm);
 

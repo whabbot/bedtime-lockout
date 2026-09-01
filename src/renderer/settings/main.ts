@@ -10,11 +10,6 @@ declare global {
 }
 
 const lockoutTimeEl = document.getElementById("lockout-time") as HTMLInputElement;
-const escalationEnabledEl = document.getElementById("escalation-enabled") as HTMLInputElement;
-const escalationSubEl = document.getElementById("escalation-sub") as HTMLElement;
-const escalationMinsEl = document.getElementById("escalation-mins") as HTMLInputElement;
-const escalationMinsValueEl = document.getElementById("escalation-mins-value") as HTMLElement;
-const escalationHintMinsEl = document.getElementById("escalation-hint-mins") as HTMLElement;
 const countdownChipsEl = document.getElementById("countdown-chips") as HTMLElement;
 const countdownAddFormEl = document.getElementById("countdown-add-form") as HTMLFormElement;
 const countdownAddInputEl = document.getElementById("countdown-add-input") as HTMLInputElement;
@@ -28,11 +23,6 @@ const saveStatusEl = document.getElementById("save-status") as HTMLElement;
 // the full object through mergeSettings on the main side, so a per-field edit
 // can never blow away fields the user didn't touch.
 let current: Settings;
-
-function renderEscalationMins(mins: number): void {
-  escalationMinsValueEl.textContent = `${mins} min`;
-  escalationHintMinsEl.textContent = String(mins);
-}
 
 function renderCountdownChips(leads: number[]): void {
   countdownChipsEl.replaceChildren(
@@ -66,10 +56,6 @@ function render(settings: Settings): void {
   lockoutTimeEl.value = settings.lockoutTime;
   wakeTimeEl.value = settings.wakeTime;
   overridePhraseEl.value = settings.overridePhrase;
-  escalationEnabledEl.checked = settings.escalation.enabled;
-  escalationSubEl.hidden = !settings.escalation.enabled;
-  escalationMinsEl.value = String(settings.escalation.continuousUseThresholdMs / 60_000);
-  renderEscalationMins(settings.escalation.continuousUseThresholdMs / 60_000);
   renderCountdownChips(settings.countdownLeadsMin);
   renderStrictness(settings.strictness);
 }
@@ -77,14 +63,6 @@ function render(settings: Settings): void {
 async function load(): Promise<void> {
   render(await window.btlSettings.getSettings());
 }
-
-escalationEnabledEl.addEventListener("change", () => {
-  escalationSubEl.hidden = !escalationEnabledEl.checked;
-});
-
-escalationMinsEl.addEventListener("input", () => {
-  renderEscalationMins(Number(escalationMinsEl.value));
-});
 
 countdownAddFormEl.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -118,11 +96,6 @@ async function save(): Promise<void> {
     overridePhrase: overridePhraseEl.value,
     strictness: (selectedStrictness?.dataset.value as Strictness) ?? current.strictness,
     countdownLeadsMin: current.countdownLeadsMin,
-    escalation: {
-      ...current.escalation,
-      enabled: escalationEnabledEl.checked,
-      continuousUseThresholdMs: Number(escalationMinsEl.value) * 60_000,
-    },
   };
 
   saveStatusEl.textContent = "Saving…";

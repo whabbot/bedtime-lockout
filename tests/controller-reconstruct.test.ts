@@ -15,7 +15,7 @@ import {
   FakeGatekeeper,
   FakeOverlay,
   makeDeps,
-  persistNoEscalationSettings,
+  persistDefaultSettings,
 } from "./helpers/fakes";
 
 let dir: string;
@@ -32,7 +32,7 @@ describe("Controller startup reconstruction (#7)", () => {
   it("re-locks on startup when a persisted GRACE relockAt is already in the past", () => {
     const now = 1_000_000;
     const store = new Store(dir);
-    persistNoEscalationSettings(store);
+    persistDefaultSettings(store);
     const sm: SM = { phase: "GRACE", relockAt: now - 60_000, lastPromiseMs: 10 * 60_000 };
     store.write("sm", sm);
 
@@ -53,7 +53,7 @@ describe("Controller startup reconstruction (#7)", () => {
   it("re-arms the relock timer (does not re-lock) when a persisted GRACE relockAt is still in the future", () => {
     const now = 1_000_000;
     const store = new Store(dir);
-    persistNoEscalationSettings(store);
+    persistDefaultSettings(store);
     const relockAt = now + 5 * 60_000;
     store.write("sm", { phase: "GRACE", relockAt, lastPromiseMs: 10 * 60_000 });
 
@@ -78,8 +78,8 @@ describe("Controller startup reconstruction (#7)", () => {
   it("re-asserts the overlay on startup when persisted phase is LOCKED", () => {
     const now = 1_000_000;
     const store = new Store(dir);
-    persistNoEscalationSettings(store);
-    store.write("sm", { phase: "LOCKED", triggerAt: now - 30 * 60_000, escalated: false });
+    persistDefaultSettings(store);
+    store.write("sm", { phase: "LOCKED", triggerAt: now - 30 * 60_000 });
 
     const deps = makeDeps(now, dir);
     const overlay = deps.overlay as FakeOverlay;
@@ -95,7 +95,7 @@ describe("Controller startup reconstruction (#7)", () => {
   it("keeps the overlay hidden on startup for IDLE", () => {
     const now = 1_000_000;
     const store = new Store(dir);
-    persistNoEscalationSettings(store);
+    persistDefaultSettings(store);
     store.write("sm", { phase: "IDLE" });
 
     const deps = makeDeps(now, dir);
@@ -107,23 +107,6 @@ describe("Controller startup reconstruction (#7)", () => {
     expect(overlay.shown).toBe(0);
     expect(overlay.hidden).toBeGreaterThan(0);
   });
-
-  it("restores LOCKED escalated framing from persisted SM into the gatekeeper context", async () => {
-    const now = 1_000_000;
-    const store = new Store(dir);
-    persistNoEscalationSettings(store);
-    store.write("sm", { phase: "LOCKED", triggerAt: now, escalated: true });
-
-    const deps = makeDeps(now, dir);
-    const gk = deps.gatekeeper as FakeGatekeeper;
-    gk.replies = ["No.\n<<GRANT:0>>"];
-    const controller = new Controller(deps);
-    controller.start();
-    controller.stop();
-
-    await controller.onSendMessage("please");
-    expect(gk.calls[0].systemPrompt.toLowerCase()).toContain("escalation has triggered");
-  });
 });
 
 describe("Controller.reloadSettings — live settings edit (Task 15)", () => {
@@ -133,7 +116,6 @@ describe("Controller.reloadSettings — live settings edit (Task 15)", () => {
     store.write("settings", {
       ...DEFAULTS,
       overridePhrase: "let me finish tonight",
-      escalation: { ...DEFAULTS.escalation, enabled: false },
     });
     store.write("sm", { phase: "LOCKED", triggerAt: now });
 
@@ -146,7 +128,6 @@ describe("Controller.reloadSettings — live settings edit (Task 15)", () => {
     store.write("settings", {
       ...DEFAULTS,
       overridePhrase: "new phrase",
-      escalation: { ...DEFAULTS.escalation, enabled: false },
     });
     controller.reloadSettings();
 
@@ -164,7 +145,7 @@ describe("Controller.triggerNow — manual lock (Task 15 tray)", () => {
   it("fires TRIGGER and shows the overlay when IDLE", () => {
     const now = 1_000_000;
     const store = new Store(dir);
-    persistNoEscalationSettings(store);
+    persistDefaultSettings(store);
     store.write("sm", { phase: "IDLE" });
 
     const deps = makeDeps(now, dir);
@@ -183,7 +164,7 @@ describe("Controller.triggerNow — manual lock (Task 15 tray)", () => {
   it("is a no-op when already LOCKED (guarded by the same TRIGGER rule as the nightly timer)", () => {
     const now = 1_000_000;
     const store = new Store(dir);
-    persistNoEscalationSettings(store);
+    persistDefaultSettings(store);
     store.write("sm", { phase: "LOCKED", triggerAt: now - 1000 });
 
     const deps = makeDeps(now, dir);
@@ -234,7 +215,6 @@ describe("Controller onSendMessage — grant handling", () => {
     store.write("settings", {
       ...DEFAULTS,
       strictness: "Firm",
-      escalation: { ...DEFAULTS.escalation, enabled: false },
     });
     store.write("sm", { phase: "LOCKED", triggerAt: now });
 
@@ -264,7 +244,6 @@ describe("Controller onSendMessage — grant handling", () => {
     store.write("settings", {
       ...DEFAULTS,
       strictness: "Unmovable", // 5min cap
-      escalation: { ...DEFAULTS.escalation, enabled: false },
     });
     store.write("sm", { phase: "LOCKED", triggerAt: now });
 
@@ -286,7 +265,6 @@ describe("Controller onSendMessage — grant handling", () => {
     const store = new Store(dir);
     store.write("settings", {
       ...DEFAULTS,
-      escalation: { ...DEFAULTS.escalation, enabled: false },
     });
     store.write("sm", { phase: "LOCKED", triggerAt: now });
 
@@ -308,7 +286,6 @@ describe("Controller onSendMessage — grant handling", () => {
     const store = new Store(dir);
     store.write("settings", {
       ...DEFAULTS,
-      escalation: { ...DEFAULTS.escalation, enabled: false },
     });
     store.write("sm", { phase: "LOCKED", triggerAt: now });
 
@@ -337,7 +314,6 @@ describe("Controller onSubmitOverride — deterministic escape, never reaches th
     store.write("settings", {
       ...DEFAULTS,
       overridePhrase: "let me finish tonight",
-      escalation: { ...DEFAULTS.escalation, enabled: false },
     });
     store.write("sm", { phase: "LOCKED", triggerAt: now });
 
@@ -362,7 +338,6 @@ describe("Controller onSubmitOverride — deterministic escape, never reaches th
     store.write("settings", {
       ...DEFAULTS,
       overridePhrase: "let me finish tonight",
-      escalation: { ...DEFAULTS.escalation, enabled: false },
     });
     store.write("sm", { phase: "LOCKED", triggerAt: now });
 
@@ -387,7 +362,6 @@ describe("Controller — compressed full cycle", () => {
       ...DEFAULTS,
       strictness: "Gentle", // 45min cap so a 10min grant survives
       quickWakeWindowMs: 60 * 60_000,
-      escalation: { ...DEFAULTS.escalation, enabled: false },
     });
     store.write("sm", { phase: "IDLE" });
 
@@ -413,7 +387,7 @@ describe("Controller — compressed full cycle", () => {
     );
 
     // TRIGGER (scheduled bedtime).
-    dispatch({ t: "TRIGGER", now: clock.now().getTime(), escalated: false });
+    dispatch({ t: "TRIGGER", now: clock.now().getTime() });
     expect(store.read<SM>("sm", { phase: "IDLE" }).phase).toBe("LOCKED");
 
     // Negotiate a 10-minute grant.
@@ -463,7 +437,7 @@ describe("Controller — day rollover re-arm (whole-branch review fix)", () => {
     // 06:00 local — wakeTime defaults to "07:00", one hour ahead.
     const now = new Date(2026, 0, 1, 6, 0, 0).getTime();
     const store = new Store(dir);
-    persistNoEscalationSettings(store);
+    persistDefaultSettings(store);
     store.write("sm", { phase: "OVERRIDE_NIGHT" });
 
     const deps = makeDeps(now, dir);
@@ -499,7 +473,7 @@ describe("Controller — day rollover re-arm (whole-branch review fix)", () => {
   it("recurs across two consecutive day boundaries, not just once", () => {
     const now = new Date(2026, 0, 1, 6, 0, 0).getTime();
     const store = new Store(dir);
-    persistNoEscalationSettings(store);
+    persistDefaultSettings(store);
     store.write("sm", { phase: "OVERRIDE_NIGHT" });
 
     const deps = makeDeps(now, dir);
@@ -532,7 +506,7 @@ describe("Controller — day rollover re-arm (whole-branch review fix)", () => {
   it("re-arms the nightly trigger on a clean quick-wake-past-cutoff morning too", () => {
     const now = new Date(2026, 0, 1, 0, 0, 0).getTime();
     const store = new Store(dir);
-    persistNoEscalationSettings(store);
+    persistDefaultSettings(store);
     store.write("sm", { phase: "SLEEP_WATCH", quickWakeUntil: now + 60_000 });
 
     const deps = makeDeps(now, dir);
@@ -560,7 +534,7 @@ describe("Controller.onRequestSleep — relockPolicy wiring", () => {
   it("uses the next wakeTime occurrence as the quick-wake cutoff under the default 'wakeTime' policy", () => {
     const now = new Date(2026, 0, 1, 23, 47, 0).getTime(); // 11:47 PM, wakeTime "07:00" next day
     const store = new Store(dir);
-    persistNoEscalationSettings(store);
+    persistDefaultSettings(store);
     store.write("sm", { phase: "LOCKED", triggerAt: now });
 
     const deps = makeDeps(now, dir);
@@ -581,7 +555,6 @@ describe("Controller.onRequestSleep — relockPolicy wiring", () => {
       ...DEFAULTS,
       relockPolicy: "window",
       quickWakeWindowMs: 60 * 60_000,
-      escalation: { ...DEFAULTS.escalation, enabled: false },
     });
     store.write("sm", { phase: "LOCKED", triggerAt: now });
 
@@ -603,7 +576,6 @@ describe("Controller overlay reentry payload — full chip data (whole-branch re
     store.write("settings", {
       ...DEFAULTS,
       strictness: "Gentle", // 45min cap, so a 10min grant survives
-      escalation: { ...DEFAULTS.escalation, enabled: false },
     });
     store.write("sm", { phase: "IDLE" });
 
@@ -636,7 +608,7 @@ describe("Controller overlay reentry payload — full chip data (whole-branch re
   it("populates sleptAt, wakeTime, and minutesSinceWake on a quick-wake relock", () => {
     const t0 = new Date(2026, 0, 1, 0, 20, 0).getTime(); // 12:20 AM
     const store = new Store(dir);
-    persistNoEscalationSettings(store);
+    persistDefaultSettings(store);
     store.write("sm", { phase: "LOCKED", triggerAt: t0 });
 
     const clock = new FakeClock(t0);

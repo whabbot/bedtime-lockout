@@ -14,10 +14,6 @@ export class ElectronPowerMonitor implements PowerMonitorPort {
   onUnlock(cb: () => void): void {
     powerMonitor.on("unlock-screen", cb);
   }
-
-  getSystemIdleTime(): number {
-    return powerMonitor.getSystemIdleTime();
-  }
 }
 
 // Sends the system "Lock Screen" shortcut (Control-Command-Q) via System

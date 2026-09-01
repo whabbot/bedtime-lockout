@@ -19,15 +19,12 @@ import {
 } from "./gatekeeper-prompt";
 import { reduce, type Effect, type Event, type SM } from "./statemachine";
 import { WallClockTimer } from "./timers";
-import { countdownFirings, nextTrigger, recompress } from "./scheduler";
-import { applyIdleSample, shouldEscalate, type ActivityState } from "./activity";
+import { countdownFirings, nextTrigger } from "./scheduler";
 import type { OverlayIpcHandlers, OverlayState } from "./overlay-ipc";
 
 const SM_KEY = "sm";
 const SETTINGS_KEY = "settings";
 const TRANSCRIPT_KEY = "transcript";
-const ACTIVITY_KEY = "activity";
-const ESCALATED_TONIGHT_KEY = "escalatedTonight";
 
 const NIGHTLY_TRIGGER_ID = "nightly-trigger";
 const RELOCK_ID = "grace-relock";
@@ -62,13 +59,12 @@ export interface ControllerDeps {
 
 /**
  * Controller-held bookkeeping for the ACTIVE lock that isn't fully recoverable
- * from `SM` alone. `escalated` and `priorCommitmentMs` are recoverable from
- * persisted `SM` (SM.escalated, SM.lastPromiseMs), but `reentry` is only
- * emitted transiently on a `SHOW_OVERLAY` effect, so it must be captured when
- * the effect fires and held here to build the next GatekeeperContext.
+ * from `SM` alone. `priorCommitmentMs` is recoverable from persisted `SM`
+ * (SM.lastPromiseMs), but `reentry` is only emitted transiently on a
+ * `SHOW_OVERLAY` effect, so it must be captured when the effect fires and
+ * held here to build the next GatekeeperContext.
  */
 interface LockContext {
-  escalated: boolean;
   reentry: "grace" | "quickwake" | null;
   priorCommitmentMs: number | null;
   /** Sleep duration for a quickwake reentry, captured off the LOG effect that fires alongside SHOW_OVERLAY. */
@@ -97,12 +93,10 @@ export class Controller {
   private sm: SM;
   private transcript: Msg[];
   private lock: LockContext = {
-    escalated: false,
     reentry: null,
     priorCommitmentMs: null,
     sleptMs: null,
   };
-  private pollHandle: ReturnType<typeof setInterval> | null = null;
   private statusListener: (() => void) | null = null;
 
   constructor(deps: ControllerDeps) {
@@ -121,7 +115,6 @@ export class Controller {
     this.sm = this.store.read<SM>(SM_KEY, { phase: "IDLE" });
     this.transcript = this.store.read<Msg[]>(TRANSCRIPT_KEY, []);
     this.lock = {
-      escalated: this.sm.escalated ?? false,
       reentry: null,
       priorCommitmentMs: this.sm.lastPromiseMs ?? null,
       sleptMs: null,
@@ -139,11 +132,10 @@ export class Controller {
   /**
    * Re-reads and re-merges Settings from Store into the live instance, so a
    * settings-window edit takes effect without an app restart. Fields already
-   * captured into scheduled timers or the running activity-poll interval at
-   * `start()` (lockoutTime, countdownLeadsMin, escalation.enabled/pollIntervalMs)
-   * are NOT retroactively rescheduled by this call — everything else (grace
-   * caps, strictness, override phrase, gatekeeper model, quick-wake window,
-   * escalation thresholds read per-poll) applies on the very next read.
+   * captured into scheduled timers at `start()` (lockoutTime,
+   * countdownLeadsMin) are NOT retroactively rescheduled by this call —
+   * everything else (grace caps, strictness, override phrase, gatekeeper
+   * model, quick-wake window) applies on the very next read.
    */
   reloadSettings(): void {
     this.settings = mergeSettings(this.store.read<Record<string, unknown>>(SETTINGS_KEY, {}));
@@ -163,10 +155,10 @@ export class Controller {
    * Manually fires a lock immediately, e.g. from the tray's "Lock now" action.
    * `force: true` since this is a deliberate one-off user action, not subject
    * to OVERRIDE_NIGHT's "no re-lock until tomorrow" guarantee the way the
-   * automatic nightly/escalation TRIGGER is.
+   * automatic nightly TRIGGER is.
    */
   triggerNow(): void {
-    this.dispatch({ t: "TRIGGER", now: this.nowMs(), escalated: false, force: true });
+    this.dispatch({ t: "TRIGGER", now: this.nowMs(), force: true });
   }
 
   start(): void {
@@ -182,16 +174,10 @@ export class Controller {
     // sleep) that happens to occur during SLEEP_WATCH is handled the same way.
     this.power.onResume(() => this.handleWake());
     this.power.onUnlock(() => this.handleWake());
-
-    this.startActivityPoll();
   }
 
   stop(): void {
     this.timers.stop();
-    if (this.pollHandle) {
-      clearInterval(this.pollHandle);
-      this.pollHandle = null;
-    }
   }
 
   snapshot(): { phase: SM["phase"] } {
@@ -253,7 +239,6 @@ export class Controller {
     switch (effect.type) {
       case "SHOW_OVERLAY":
         this.lock = {
-          escalated: Boolean(effect.payload?.escalated),
           reentry: effect.reentry ?? null,
           priorCommitmentMs: effect.payload?.priorCommitmentMs ?? null,
           sleptMs: null,
@@ -333,7 +318,7 @@ export class Controller {
     }
     const at = nextTrigger(this.settings.lockoutTime, this.clock.now()).getTime();
     this.timers.schedule(NIGHTLY_TRIGGER_ID, at, () => {
-      this.dispatch({ t: "TRIGGER", now: this.nowMs(), escalated: false });
+      this.dispatch({ t: "TRIGGER", now: this.nowMs() });
     });
   }
 
@@ -388,58 +373,6 @@ export class Controller {
     this.timers.schedule(RELOCK_ID, at, () => {
       this.dispatch({ t: "TICK", now: this.nowMs() });
     });
-  }
-
-  // --- Activity / escalation poll ---
-
-  private startActivityPoll(): void {
-    if (!this.settings.escalation.enabled) {
-      return;
-    }
-    this.pollHandle = setInterval(
-      () => this.pollActivity(),
-      this.settings.escalation.pollIntervalMs,
-    );
-  }
-
-  private pollActivity(): void {
-    const nowMs = this.nowMs();
-    const prior = this.store.read<ActivityState>(ACTIVITY_KEY, {
-      continuousActiveSinceMs: null,
-      lastSampleMs: nowMs,
-    });
-    const idleSeconds = this.power.getSystemIdleTime();
-    const next = applyIdleSample(prior, idleSeconds, nowMs, this.settings.escalation);
-    this.store.write(ACTIVITY_KEY, next);
-
-    if (this.sm.phase !== "IDLE" && this.sm.phase !== "COUNTDOWN") {
-      return;
-    }
-    if (this.escalatedTonight()) {
-      return;
-    }
-    if (!shouldEscalate(next, this.clock.now(), this.settings.escalation)) {
-      return;
-    }
-
-    this.markEscalatedTonight();
-    this.dispatch({ t: "TRIGGER", now: nowMs, escalated: true });
-    this.rescheduleForEscalation(nowMs);
-  }
-
-  private rescheduleForEscalation(triggerMs: number): void {
-    this.timers.unschedule(NIGHTLY_TRIGGER_ID);
-    const triggerAt = new Date(triggerMs);
-    const firings = recompress(triggerAt, this.settings.countdownLeadsMin, this.clock.now());
-    this.applyCountdownFirings(triggerAt, firings);
-  }
-
-  private escalatedTonight(): boolean {
-    return this.store.read<boolean>(ESCALATED_TONIGHT_KEY, false);
-  }
-
-  private markEscalatedTonight(): void {
-    this.store.write(ESCALATED_TONIGHT_KEY, true);
   }
 
   // --- IPC handlers ---
@@ -517,7 +450,6 @@ export class Controller {
       strictness: this.settings.strictness,
       history: this.eventLog.summaryForGatekeeper(now),
       graceCapMs: this.settings.graceCapsMs[this.settings.strictness],
-      escalated: this.lock.escalated,
       reentry: this.lock.reentry,
       ...(this.lock.reentry === "grace" && this.lock.priorCommitmentMs !== null
         ? { priorCommitment: this.gracePriorCommitment(this.lock.priorCommitmentMs, now) }
@@ -627,7 +559,6 @@ export class Controller {
   private clearTranscript(): void {
     this.transcript = [];
     this.persistTranscript();
-    this.store.write(ESCALATED_TONIGHT_KEY, false);
   }
 }
 

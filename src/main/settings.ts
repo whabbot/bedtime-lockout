@@ -12,13 +12,6 @@ export interface Settings {
   relockPolicy: "wakeTime" | "window";
   quickWakeWindowMs: number;
   graceCapsMs: { Gentle: number; Firm: number; Unmovable: number };
-  escalation: {
-    enabled: boolean;
-    earliestStart: string; // "22:30": activity before this doesn't escalate
-    continuousUseThresholdMs: number;
-    idleGapToleranceMs: number;
-    pollIntervalMs: number;
-  };
   dev: {
     windowedOverlay: boolean;
   };
@@ -48,13 +41,6 @@ export const DEFAULTS: Settings = {
     Gentle: 45 * 60_000,
     Firm: 15 * 60_000,
     Unmovable: 5 * 60_000,
-  },
-  escalation: {
-    enabled: true,
-    earliestStart: "22:30",
-    continuousUseThresholdMs: 90 * 60_000,
-    idleGapToleranceMs: 5 * 60_000,
-    pollIntervalMs: 30_000,
   },
   dev: {
     windowedOverlay: false,
@@ -98,7 +84,6 @@ function mergeEnum<T extends string>(value: unknown, allowed: Set<string>, fallb
  */
 export function mergeSettings(partial: PartialSettings | Record<string, unknown> = {}): Settings {
   const p = (partial ?? {}) as Record<string, any>;
-  const escalationIn = (p.escalation ?? {}) as Record<string, any>;
   const graceCapsIn = (p.graceCapsMs ?? {}) as Record<string, any>;
   const devIn = (p.dev ?? {}) as Record<string, any>;
 
@@ -124,25 +109,6 @@ export function mergeSettings(partial: PartialSettings | Record<string, unknown>
       Gentle: mergeDuration(graceCapsIn.Gentle, DEFAULTS.graceCapsMs.Gentle),
       Firm: mergeDuration(graceCapsIn.Firm, DEFAULTS.graceCapsMs.Firm),
       Unmovable: mergeDuration(graceCapsIn.Unmovable, DEFAULTS.graceCapsMs.Unmovable),
-    },
-    escalation: {
-      enabled:
-        typeof escalationIn.enabled === "boolean"
-          ? escalationIn.enabled
-          : DEFAULTS.escalation.enabled,
-      earliestStart: mergeTime(escalationIn.earliestStart, DEFAULTS.escalation.earliestStart),
-      continuousUseThresholdMs: mergeDuration(
-        escalationIn.continuousUseThresholdMs,
-        DEFAULTS.escalation.continuousUseThresholdMs,
-      ),
-      idleGapToleranceMs: mergeDuration(
-        escalationIn.idleGapToleranceMs,
-        DEFAULTS.escalation.idleGapToleranceMs,
-      ),
-      pollIntervalMs: mergeDuration(
-        escalationIn.pollIntervalMs,
-        DEFAULTS.escalation.pollIntervalMs,
-      ),
     },
     dev: {
       windowedOverlay:

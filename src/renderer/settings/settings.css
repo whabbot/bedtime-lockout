@@ -73,13 +73,6 @@ body {
   gap: 12px;
 }
 
-.row-sub {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding-left: 4px;
-}
-
 .row-hint {
   margin: 0;
   font-size: 12px;
@@ -99,17 +92,6 @@ input[type="number"] {
   color: #e9ebf3;
   padding: 6px 10px;
   font-size: 13px;
-}
-
-input[type="range"] {
-  accent-color: #aab6f2;
-  flex: 1;
-}
-
-input[type="checkbox"] {
-  accent-color: #aab6f2;
-  width: 18px;
-  height: 18px;
 }
 
 .chips {

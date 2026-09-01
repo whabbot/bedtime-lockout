@@ -20,22 +20,6 @@
 
       <section class="row">
         <div class="row-main">
-          <label for="escalation-enabled">Bring it forward if I'm still working late</label>
-          <input id="escalation-enabled" type="checkbox" />
-        </div>
-        <div class="row-sub" id="escalation-sub">
-          <label for="escalation-mins">Continuous-use threshold</label>
-          <input id="escalation-mins" type="range" min="30" max="240" step="15" />
-          <span id="escalation-mins-value" class="mono"></span>
-        </div>
-        <p class="row-hint">
-          Locks early after <span id="escalation-hint-mins" class="mono"></span> min of continuous
-          use past 11:00 PM. Brief breaks under 5 min don't reset the clock.
-        </p>
-      </section>
-
-      <section class="row">
-        <div class="row-main">
           <label>Countdown reminders</label>
         </div>
         <div class="chips" id="countdown-chips"></div>
