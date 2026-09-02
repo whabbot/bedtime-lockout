@@ -45,9 +45,6 @@ const overrideHintEl = document.getElementById("override-hint") as HTMLElement;
 const overrideFormEl = document.getElementById("override-form") as HTMLFormElement;
 const overrideTextEl = document.getElementById("override-text") as HTMLInputElement;
 const sleepBtnEl = document.getElementById("sleep-btn") as HTMLButtonElement;
-const sleepConfirmEl = document.getElementById("sleep-confirm") as HTMLElement;
-const sleepYesEl = document.getElementById("sleep-yes") as HTMLButtonElement;
-const sleepNoEl = document.getElementById("sleep-no") as HTMLButtonElement;
 const overrideFooterEl = document.getElementById("override-footer") as HTMLElement;
 
 let currentState: OverlayState | null = null;
@@ -225,21 +222,5 @@ overrideFormEl.addEventListener("submit", (e) => {
 });
 
 sleepBtnEl.addEventListener("click", () => {
-  sleepConfirmEl.hidden = false;
-  // DESIGN.md's sleep-offer step is a focused two-button screen — suppress
-  // the negotiation controls underneath rather than leaving them live.
-  inputFormEl.classList.add("disabled");
-  inputTextEl.disabled = true;
-  overrideFormEl.classList.add("disabled");
-  overrideTextEl.disabled = true;
-});
-
-sleepYesEl.addEventListener("click", () => {
-  sleepConfirmEl.hidden = true;
   window.btl.requestSleep();
-});
-
-sleepNoEl.addEventListener("click", () => {
-  sleepConfirmEl.hidden = true;
-  if (currentState) render(currentState);
 });

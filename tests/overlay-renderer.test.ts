@@ -69,6 +69,17 @@ function submitForm(id: string): void {
   form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
 }
 
+describe("overlay renderer — the lock button", () => {
+  it("locks the Mac on a single click, with no confirmation step", async () => {
+    const app = await loadOverlay();
+    app.handlers.onState!(coldState());
+
+    (document.getElementById("sleep-btn") as HTMLButtonElement).click();
+
+    expect(app.requestSleep).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("overlay renderer — override is not gated on gatekeeper health", () => {
   beforeEach(() => {
     vi.useFakeTimers();
